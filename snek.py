@@ -13,16 +13,16 @@ class SnekGame:
   snek_body_width = 20 #px
 
   # Game Attributes
-  snake_length = 1
-  points = 0
   arrows = [False, False, False, False] # Up, Right, Down, Left
   cur_direction = -1 # -1 = no direction
   snek_pos = [pygame.math.Vector2(0,0)]
 
   # Constructor, called when class is instantiated
   def __init__(self):
+    pygame.init()
     pygame.display.set_icon(self.snek_body)
     pygame.display.set_caption("Snek Game")
+    self._font = pygame.font.Font('freesansbold.ttf', 32) 
     self._fps = 5
     self._clock = pygame.time.Clock()
     self._running = True
@@ -69,7 +69,7 @@ class SnekGame:
 
   def first_update(self):
     self.snek_pos[0] = pygame.math.Vector2(10,10)
-
+    self.update_score()
     # Put the food somewhere at random
     self.regenerate_food()
 
@@ -125,16 +125,21 @@ class SnekGame:
   def on_draw(self):
     self._screen.fill( (0,0,0) )
     self._screen.blit(self.game_bg, (0,0))
-    pygame.display.update()
-    
     self._screen.blit(self.snek_food, self.food_pos * self.snek_body_width)
 
     for pos in self.snek_pos :
       cur_px = pos * self.snek_body_width
       self._screen.blit(self.snek_body, cur_px)
 
+    self._screen.blit(self.score_text, self.score_text_rect)
     pygame.display.update()
     self._clock.tick(self._fps)
+
+  def update_score(self):
+    self.score_text = self._font.render('Score : '+ str(len(self.snek_pos)-1), True, (255, 255, 255))
+    self.score_text_rect = self.score_text.get_rect()
+    self.score_text_rect.center = (210, 20)
+
 
   def make_snek_bigger(self):
     snek_len = len(self.snek_pos)
@@ -142,6 +147,7 @@ class SnekGame:
       self.snek_pos[snek_len - 1][0],
       self.snek_pos[snek_len - 1][1]
     ))
+    self.update_score()
     self._fps += 1
 
   def regenerate_food(self):
