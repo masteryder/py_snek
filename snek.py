@@ -2,8 +2,8 @@ import pygame
 import random
 from pygame.locals import *
 
-class SnekGame:
   
+class SnekGame:
   # Assets
   snek_body = pygame.image.load("assets/snakeBody.png")
   snek_food = pygame.image.load("assets/food.png")
@@ -17,13 +17,14 @@ class SnekGame:
   points = 0
   arrows = [False, False, False, False] # Up, Right, Down, Left
   cur_direction = -1 # -1 = no direction
-  snek_pos = pygame.math.Vector2(0,0)
+  snek_pos = [pygame.math.Vector2(0,0)]
 
   # Constructor, called when class is instantiated
   def __init__(self):
     pygame.display.set_icon(self.snek_body)
     pygame.display.set_caption("Snek Game")
 
+    self._clock = pygame.time.Clock()
     self._running = True
     self.size = self.weight, self.height = 420, 420
     self._screen = pygame.display.set_mode(self.size, pygame.HWSURFACE | pygame.DOUBLEBUF)
@@ -42,7 +43,6 @@ class SnekGame:
         self.arrows[2] = True
       elif event.key == pygame.K_LEFT:
         self.arrows[3] = True
-      print(self.arrows)
 
     if event.type == pygame.KEYUP:
       if event.key == pygame.K_UP:
@@ -56,16 +56,14 @@ class SnekGame:
     
 
   def first_update(self):
-    self.snek_pos = pygame.math.Vector2(10,10)
+    self.snek_pos[0] = pygame.math.Vector2(10,10)
 
     # Put the food somewhere at random
-    self.food_pos = pygame.math.Vector2(random.randint(0,20), random.randint(0,20))
-    while self.food_pos.x == 10 and self.food_pos.y == 10 :
-      self.food_pos = pygame.math.Vector2(random.randint(0,20), random.randint(0,20))
+    self.regenerate_food()
 
   # Game loop, handles logic
   def on_update(self):
-
+    # Update direction
     if self.arrows[0] == True and (self.cur_direction != 2):
       self.cur_direction = 0
     elif self.arrows[1] == True and (self.cur_direction != 3):
@@ -74,17 +72,26 @@ class SnekGame:
       self.cur_direction = 2
     elif self.arrows[3] == True and (self.cur_direction != 1):
       self.cur_direction = 3
-    
-    if self.cur_direction >= 0 :
-      if self.cur_direction == 0 :
-        self.snek_pos = self.snek_pos + pygame.math.Vector2(0,-1)
-      elif self.cur_direction == 1 :
-        self.snek_pos = self.snek_pos + pygame.math.Vector2(1,0)
-      elif self.cur_direction == 2 :
-        self.snek_pos = self.snek_pos + pygame.math.Vector2(0,1)
-      elif self.cur_direction == 3 :
-        self.snek_pos = self.snek_pos + pygame.math.Vector2(-1,0)
 
+    # Update position of various body parts
+    if self.cur_direction >= 0 :
+      for x in range(len(self.snek_pos), 0, -1):
+        if x - 1 == 0:
+          if self.cur_direction == 0 :
+            self.snek_pos[0] += pygame.math.Vector2(0,-1)
+          elif self.cur_direction == 1 :
+            self.snek_pos[0] += pygame.math.Vector2(1,0)
+          elif self.cur_direction == 2 :
+            self.snek_pos[0] += pygame.math.Vector2(0,1)
+          elif self.cur_direction == 3 :
+            self.snek_pos[0] += pygame.math.Vector2(-1,0)
+        else:
+          self.snek_pos[x - 1] = self.snek_pos[x - 2]
+
+    if self.snek_pos[0] == self.food_pos:
+      self.regenerate_food()
+      self.make_snek_bigger()
+    print(self.snek_pos)
 
   def first_draw(self):
     self._screen.blit(self.game_bg, (0,0))
@@ -93,19 +100,38 @@ class SnekGame:
     print("Starting food pos = " + str(self.food_pos) + " and resulting px = " + str(starting_food_px))
     self._screen.blit(self.snek_food, starting_food_px )
 
-    starting_snek_px = (self.snek_pos * self.snek_body_width)
+    starting_snek_px = (self.snek_pos[0] * self.snek_body_width)
     print("Starting Snek pos = " + str(self.food_pos) + " and resulting px = " + str(starting_snek_px))
     self._screen.blit(self.snek_body, starting_snek_px)
     
-    pygame.display.flip()
+    pygame.display.update()
 
   # Called after on_loop , renders state to the screen
   def on_draw(self):
-    snek_px = (self.snek_pos * self.snek_body_width)
-    self._screen.blit(self.snek_body, snek_px)
-    pygame.display.flip()
+    self._screen.blit(self.game_bg, (0,0))
+    pygame.display.update()
+    
+    self._screen.blit(self.snek_food, self.food_pos * self.snek_body_width)
 
+    for pos in self.snek_pos :
+      cur_px = pos * self.snek_body_width
+      self._screen.blit(self.snek_body, cur_px)
 
+    pygame.display.update()
+    self._clock.tick(10)
+
+  def make_snek_bigger(self):
+    snek_len = len(self.snek_pos)
+    self.snek_pos.append(pygame.math.Vector2(
+      self.snek_pos[snek_len - 1][0],
+      self.snek_pos[snek_len - 1][1]
+    ))
+
+  def regenerate_food(self):
+    self.food_pos = pygame.math.Vector2(random.randint(1,19), random.randint(1,19))
+    while self.food_pos.x == self.snek_pos[0].x and self.food_pos.y == self.snek_pos[0].y :
+      self.food_pos = pygame.math.Vector2(random.randint(1,19), random.randint(1,19))
+    
   # Called when game is closed
   def on_cleanup(self):
     pygame.quit()
